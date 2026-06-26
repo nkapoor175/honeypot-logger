@@ -1,7 +1,6 @@
 import requests
 import logging
-from database import get_attempts_by_ip, get_recent_attempts
-
+from database import get_all_logs, get_recent_attempts
 
 # --- Scoring Constants ---
 COUNT_THRESHOLDS = [
@@ -53,15 +52,15 @@ def get_location(ip_address: str) -> dict:
         return {"country": "Unknown", "city": "Unknown"}
 
 
-def calculate_threat_score(ip: str, conn) -> int:
+def calculate_threat_score(ip:str) -> int:
     """
     Returns a threat score from 0 to 100 for a given IP.
     Based on attempt frequency, recent burst, suspicious usernames,
     and automated User-Agent detection.
     """
     score = 0
-
-    all_attempts = get_attempts_by_ip(ip)
+    all_logs     = get_all_logs()
+    all_attempts = [a for a in all_logs if a.get("ip_address") == ip]
     total        = len(all_attempts)
 
     # Frequency scoring — more attempts from this IP = higher score
@@ -90,7 +89,7 @@ def calculate_threat_score(ip: str, conn) -> int:
     return min(score, 100)
 
 
-def is_brute_force(ip: str, conn) -> bool:
+def is_brute_force(ip: str) -> bool:
     """
     Returns True if an IP has made more than 10 login attempts
     in the last 10 minutes — indicating automated brute force behaviour.
