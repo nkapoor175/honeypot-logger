@@ -89,7 +89,6 @@ def run_simulation():
 
         print(f"{index:<5} {ip:<16} {username:<16} {password:<12} {status}")
         time.sleep(DELAY_BETWEEN_REQUESTS)
-
     print("\nSimulation complete.")
     print("Check your dashboard — threat scores for 192.168.1.10 should be high.")
 
