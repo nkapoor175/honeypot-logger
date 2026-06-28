@@ -13,6 +13,10 @@ from database import (
 app = Flask(__name__)
 CORS(app)
 
+# Make sure DB/table exists when app starts
+init_db()
+
+
 # Plugs in automatically when Person A pushes database.py
 try:
     from database import save_attempt, get_all_attempts, get_stats
@@ -30,8 +34,7 @@ try:
 except ImportError:
     HONEYPOT_READY = False
     print("[WARN] honeypot_logic.py not found yet — skipping threat scoring")
-# Make sure DB/table exists when app starts
-init_db()
+
 
 @app.route('/')
 def login_page():
@@ -41,38 +44,6 @@ def login_page():
 
 @app.route('/login', methods=['POST'])
 def login():
-    # Extract data from the incoming request
-    ip = request.remote_addr
-    username = request.form.get('username', '')
-    password = request.form.get('password', '')
-    user_agent = request.headers.get('User-Agent', '')
-
-    # Get geolocation from Person E's module
-    country, city = '', ''
-    if HONEYPOT_READY:
-        location = get_location(ip)
-        country = location.get('country', '')
-        city = location.get('city', '')
-
-    # Get threat score from Person E's module
-    threat_score = 0
-    if HONEYPOT_READY:
-        threat_score = calculate_threat_score(ip, username, password)
-
-    # Save attempt via Person A's module
-    if DB_READY:
-        save_attempt(
-            ip_address=ip,
-            username=username,
-            password=password,
-            user_agent=user_agent,
-            country=country,
-            city=city,
-            threat_score=threat_score
-        )
-
-    print(f"[ATTEMPT] ip={ip} | user={username} | threat={threat_score} | country={country}")
-    return jsonify({"status": "error", "message": "Invalid credentials"})
     # get data sent from login form / frontend
     data = request.get_json(silent=True) or request.form
 
@@ -108,9 +79,43 @@ def login():
     print("Login attempt saved:", username, ip_address)
 
     return jsonify({
-        "status": "success",
-        "message": "Login attempt captured"
+        "status": "error",
+        "message": "Invalid credentials"
     })
+
+    # Extract data from the incoming request
+    ip = request.remote_addr
+    username = request.form.get('username', '')
+    password = request.form.get('password', '')
+    user_agent = request.headers.get('User-Agent', '')
+
+    # Get geolocation from Person E's module
+    country, city = '', ''
+    if HONEYPOT_READY:
+        location = get_location(ip)
+        country = location.get('country', '')
+        city = location.get('city', '')
+
+    # Get threat score from Person E's module
+    threat_score = 0
+    if HONEYPOT_READY:
+        threat_score = calculate_threat_score(ip, username, password)
+
+    # Save attempt via Person A's module
+    if DB_READY:
+        save_attempt(
+            ip_address=ip,
+            username=username,
+            password=password,
+            user_agent=user_agent,
+            country=country,
+            city=city,
+            threat_score=threat_score
+        )
+
+    print(f"[ATTEMPT] ip={ip} | user={username} | threat={threat_score} | country={country}")
+    return jsonify({"status": "error", "message": "Invalid credentials"})
+
 
 @app.route('/dashboard')
 def dashboard():
@@ -120,27 +125,27 @@ def dashboard():
 
 @app.route('/api/logs')
 def api_logs():
-<<<<<<< HEAD
+    logs = get_all_logs()
+    return jsonify(logs)
+
     if not DB_READY:
         return jsonify([])
     return jsonify(get_all_attempts())
-=======
-    logs = get_all_logs()
-    return jsonify(logs)
->>>>>>> 3d4bc5b ([db] implement database logging, seed data, and API integration)
 
 
 @app.route('/api/stats')
 def api_stats():
-    if not DB_READY:
-        return jsonify({})
-    return jsonify(get_stats())
     stats = {
         "top_usernames": get_top_usernames(),
         "attempts_by_hour": get_attempts_by_hour(),
         "high_threat_ips": get_high_threat_ips()
     }
     return jsonify(stats)
+
+    if not DB_READY:
+        return jsonify({})
+    return jsonify(get_stats())
+
 
 if __name__ == '__main__':
     app.run(debug=True)
