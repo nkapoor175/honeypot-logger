@@ -31,7 +31,7 @@ def login_page():
 @app.route('/login', methods=['POST'])
 def login():
     # Extract data from the incoming request
-    ip = request.remote_addr
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr)
     username = request.form.get('username', '')
     password = request.form.get('password', '')
     user_agent = request.headers.get('User-Agent', '')
@@ -46,7 +46,7 @@ def login():
     # Get threat score from Person E's module
     threat_score = 0
     if HONEYPOT_READY:
-        threat_score = calculate_threat_score(ip, username, password)
+        threat_score = calculate_threat_score(ip)
 
     # Save attempt via Person A's module
     if DB_READY:
