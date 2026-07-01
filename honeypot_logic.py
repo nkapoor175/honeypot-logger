@@ -1,6 +1,6 @@
 import requests
 import logging
-from database import get_all_logs, get_recent_attempts
+from database import get_attempts_by_ip, get_recent_attempts
 
 # --- Scoring Constants ---
 COUNT_THRESHOLDS = [
@@ -59,9 +59,8 @@ def calculate_threat_score(ip:str) -> int:
     and automated User-Agent detection.
     """
     score = 0
-    all_logs     = get_all_logs()
-    all_attempts = [a for a in all_logs if a.get("ip_address") == ip]
-    total        = len(all_attempts)
+    all_attempts = get_attempts_by_ip(ip)
+    total = len(all_attempts)
 
     # Frequency scoring — more attempts from this IP = higher score
     for threshold, points in COUNT_THRESHOLDS:
